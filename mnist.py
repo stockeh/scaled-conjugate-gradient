@@ -58,31 +58,21 @@ def compute_accuracy(model, X, y):
         return (preds == y).float().mean().item() * 100
 
 
-def train(
-    model,
-    Xtrain,
-    Ttrian,
-    Xval,
-    Tval,
-    n_epochs,
-    batch_size,
-    optimizer_name,
-    lr=0.001,
-):
+def train(model, Xtrain, Ttrian, Xval, Tval, n_epochs, batch_size, optim_name):
     """Train model with specified optimizer."""
-    if optimizer_name == "SCG":
+    if optim_name == "SCG":
         optimizer = SCG(model.parameters())
     else:
-        optimizer = Adam(model.parameters(), lr=lr)
+        optimizer = Adam(model.parameters(), lr=0.001)
 
     train_losses, val_losses = [], []
     batches = make_batches(Xtrain, Ttrian, batch_size)
 
-    for _ in tqdm(range(n_epochs), desc=optimizer_name):
+    for _ in tqdm(range(n_epochs), desc=optim_name):
         epoch_loss = 0.0
 
         for X_batch, y_batch in batches:
-            if optimizer_name == "SCG":
+            if optim_name == "SCG":
                 loss = optimizer.step(lambda: F.cross_entropy(model(X_batch), y_batch))
             else:
                 optimizer.zero_grad()
