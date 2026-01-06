@@ -55,8 +55,8 @@ def plot_optimization_paths(
     colors,
     names,
     figsize=(10, 10),
-    x_lim=(-0.5, 1.5),
-    y_lim=(-0.5, 1.5),
+    x_lim=(-2, 1.5),
+    y_lim=(-2, 1.5),
     n_points=300,
 ):
     """Plot the Rosenbrock function contours with optimization paths."""
@@ -76,11 +76,9 @@ def plot_optimization_paths(
     for path, color, name in zip(paths, colors, names):
         ax.plot(path[:, 0], path[:, 1], ".-", label=name, c=color)
 
-    ax.legend(prop={"size": 15})
-    ax.plot(*minimum, "rD", markersize=10)
+    ax.legend(prop={"size": 16})
+    ax.plot(*minimum, "rD", markersize=8)
 
-    ax.set_xlabel("x", fontsize=12)
-    ax.set_ylabel("y", fontsize=12)
     ax.set_xlim(*x_lim)
     ax.set_ylim(*y_lim)
 
@@ -89,16 +87,16 @@ def plot_optimization_paths(
 
 
 def main():
-    xy_init = (0.3, 0.8)
-    n_iter = 200
+    xy_init = (-1.95, -1.95)
+    n_iter = 500
 
     print("=" * 60)
     print("Testing SCG on Rosenbrock function")
     print("=" * 60)
 
     path_scg = run_optimization_scg(xy_init, n_iter)
-    path_adam = run_optimization_standard(xy_init, Adam, n_iter, lr=0.01)
-    path_sgd = run_optimization_standard(xy_init, SGD, n_iter, lr=0.01)
+    path_adam = run_optimization_standard(xy_init, Adam, n_iter, lr=0.03)
+    path_sgd = run_optimization_standard(xy_init, SGD, n_iter, lr=0.03)
 
     print("\nFinal positions:")
     print(f"  SCG:     {path_scg[-1]}")
@@ -117,9 +115,9 @@ def main():
 
     # Plot the results
     plot_optimization_paths(
-        paths=[path_scg, path_adam, path_sgd],
-        colors=["k", "b", "g"],
-        names=["SCG", "Adam", "SGD"],
+        paths=[path_sgd, path_adam, path_scg],
+        colors=["g", "b", "k"],
+        names=["SGD", "Adam", "SCG"],
     )
 
 

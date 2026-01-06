@@ -25,7 +25,7 @@ class MLP(nn.Module):
 
     def forward(self, x):
         x = x.view(x.size(0), -1)
-        x = F.relu(self.fc1(x))
+        x = F.tanh(self.fc1(x))
         return self.fc2(x)
 
 
@@ -162,8 +162,8 @@ def main():
     Xtrain, Ttrian, Xval, Tval = load_mnist(DEVICE)
     print(f"Train: {Xtrain.shape}, Val: {Xval.shape}")
 
-    n_epochs = 200
-    batch_sizes = [-1]
+    n_epochs = 100
+    batch_sizes = [-1, 2048]
 
     all_results = []
     for bs in batch_sizes:
