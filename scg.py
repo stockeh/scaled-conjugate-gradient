@@ -135,7 +135,6 @@ class SCG(Optimizer):
             state["lambda"] = self.defaults["lambda_init"]
             state["lambda_bar"] = 0.0
             state["success"] = True
-            state["n_success"] = 0
             state["r"] = r  # r = -E'(w), the negative gradient
             state["f"] = f  # f = E(w), the loss
             state["p"] = r.clone()  # p = search direction
@@ -145,7 +144,6 @@ class SCG(Optimizer):
         lam = state["lambda"]
         lam_bar = state["lambda_bar"]
         success = state["success"]
-        n_success = state["n_success"]
         r = state["r"]
         f = state["f"]
         p = state["p"]
@@ -173,14 +171,14 @@ class SCG(Optimizer):
             # s = (E'(w+σp) - E'(w)) / σ = (-r_perturbed - (-r)) / σ = (r - r_perturbed) / σ
             s = (r - r_perturbed) / sigma
 
-            # δ = p·s = p·(H·p) ≈ curvature along p
-            delta = (p @ s).item()
+            # δ₀ = p·s = p·(H·p) ≈ raw curvature along p (before scaling)
+            delta0 = (p @ s).item()
         else:
-            # Reuse delta from previous iteration
-            delta = state.get("delta", 0.0)
+            # Reuse raw curvature from previous iteration
+            delta0 = state.get("delta0", 0.0)
 
         # Step 3: Scale delta with trust region parameter
-        delta = delta + (lam - lam_bar) * p_norm_sq
+        delta = delta0 + (lam - lam_bar) * p_norm_sq
 
         # Step 4: Make Hessian positive definite if needed
         if delta <= 0:
@@ -194,6 +192,24 @@ class SCG(Optimizer):
 
         # Step 5: Calculate step size
         mu = (p @ r).item()  # μ = p·r
+
+        # Guard against division by zero when search direction is orthogonal to gradient
+        if abs(mu) < sys.float_info.epsilon:
+            r_norm_sq = (r @ r).item()
+            if r_norm_sq < sys.float_info.epsilon:
+                # Gradient is essentially zero, we've converged
+                return f
+            # Restart to steepest descent and advance state to prevent stalling
+            state["step"] = step + 1
+            state["lambda"] = lam
+            state["lambda_bar"] = lam_bar
+            state["success"] = True
+            state["r"] = r
+            state["f"] = f
+            state["p"] = r.clone()
+            state["p_norm_sq"] = r_norm_sq
+            return f
+
         alpha = mu / delta  # α = μ/δ
 
         # Compute loss at candidate position
@@ -209,7 +225,6 @@ class SCG(Optimizer):
         if Delta >= 0:
             success = True
             lam_bar = 0.0
-            n_success += 1
 
             # Accept the new position
             r_old = r.clone()
@@ -220,10 +235,9 @@ class SCG(Optimizer):
                 r, _ = self._compute_grad(loss_fn)
 
             # Restart or update search direction
-            if n_success % self._numel == 0:
-                # Restart: reset to steepest descent
+            if (step + 1) % self._numel == 0:
+                # Restart: reset to steepest descent (every N iterations per Møller 1993)
                 p = r.clone()
-                n_success = 0
             else:
                 # Polak-Ribière formula: β = (|r_new|² - r_new·r_old) / μ
                 # Note: mu = p·r_old (from before the update)
@@ -250,12 +264,11 @@ class SCG(Optimizer):
         state["lambda"] = lam
         state["lambda_bar"] = lam_bar
         state["success"] = success
-        state["n_success"] = n_success
         state["r"] = r
         state["f"] = f
         state["p"] = p
         state["p_norm_sq"] = p_norm_sq
-        state["delta"] = delta
+        state["delta0"] = delta0
 
         return f
 

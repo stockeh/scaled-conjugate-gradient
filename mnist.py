@@ -162,8 +162,8 @@ def main():
     Xtrain, Ttrian, Xval, Tval = load_mnist(DEVICE)
     print(f"Train: {Xtrain.shape}, Val: {Xval.shape}")
 
-    n_epochs = 100
-    batch_sizes = [-1, 256]
+    n_epochs = 200
+    batch_sizes = [-1]
 
     all_results = []
     for bs in batch_sizes:
